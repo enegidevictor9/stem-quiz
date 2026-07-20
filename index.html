@@ -3,32 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STEM Questions Quiz - 60 Questions</title>
+    <title>STEM Quiz - 60 Questions</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <h1>STEM Questions Quiz</h1>
-        <p class="subtitle">Click on any question to answer it (60 Questions)</p>
-        
-        <div class="score-display">
-            <span>Score: <strong id="scoreCount">0</strong>/60</span>
-            <button class="reset-btn" onclick="resetQuiz()">Reset All</button>
-        </div>
-        
-        <div class="questions-grid" id="questionsGrid">
-            <!-- Questions will be generated here by JavaScript -->
-        </div>
-    </div>
+        <!-- Header Section -->
+        <header class="header">
+            <h1>🧪 STEM Quiz</h1>
+            <p class="tagline">Test Your Science, Technology, Engineering & Math Knowledge</p>
+        </header>
 
-    <!-- Modal for displaying questions and answers -->
-    <div id="questionModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeQuestion()">&times;</span>
-            <h2 id="modalQuestion"></h2>
-            <div class="options-container" id="optionsContainer"></div>
-            <button class="submit-btn" onclick="submitAnswer()">Submit Answer</button>
-            <div id="resultMessage" class="result-message"></div>
+        <!-- Score Section -->
+        <div class="score-section">
+            <div class="score-info">
+                <div class="score-card">
+                    <span class="score-label">Total</span>
+                    <span class="score-value" id="totalScore">0</span>
+                </div>
+                <div class="score-card">
+                    <span class="score-label">Answered</span>
+                    <span class="score-value" id="answeredScore">0</span>
+                </div>
+                <div class="score-card">
+                    <span class="score-label">Remaining</span>
+                    <span class="score-value" id="remainingScore">60</span>
+                </div>
+            </div>
+            <button class="btn-reset" onclick="resetAllAnswers()">🔄 Reset Quiz</button>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <button class="filter-btn active" onclick="setFilter('all')">All Questions</button>
+            <button class="filter-btn" onclick="setFilter('unanswered')">Unanswered</button>
+            <button class="filter-btn" onclick="setFilter('answered')">Answered</button>
+        </div>
+
+        <!-- Questions Section -->
+        <div class="questions-section" id="questionsSection">
+            <!-- Accordions will be generated here -->
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container">
+            <div class="progress-label">Quiz Progress</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
         </div>
     </div>
 
