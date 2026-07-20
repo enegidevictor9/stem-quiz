@@ -316,110 +316,134 @@ const questions = [
 let answeredQuestions = new Set();
 let currentQuestion = null;
 let selectedAnswer = null;
+let currentFilter = 'all';
 
 // Initialize quiz on page load
 document.addEventListener('DOMContentLoaded', function() {
-    generateQuestionButtons();
+    generateQuestionAccordions();
 });
 
-// Generate question buttons dynamically
-function generateQuestionButtons() {
-    const grid = document.getElementById('questionsGrid');
-    grid.innerHTML = '';
+// Generate question accordions
+function generateQuestionAccordions() {
+    const container = document.getElementById('questionsContainer');
+    container.innerHTML = '';
     
-    questions.forEach((q, index) => {
-        const button = document.createElement('button');
-        button.className = 'question-btn';
-        if (answeredQuestions.has(index)) {
-            button.classList.add('answered');
-        }
-        button.innerHTML = `
-            <span class="question-number">Q${index + 1}</span>
-            <span class="question-text">${q.question}</span>
+    const filteredQuestions = getFilteredQuestions();
+    
+    filteredQuestions.forEach((q, displayIndex) => {
+        const actualIndex = questions.findIndex(question => question.question === q.question);
+        
+        const accordion = document.createElement('div');
+        accordion.className = 'question-accordion';
+        
+        const isAnswered = answeredQuestions.has(actualIndex);
+        
+        accordion.innerHTML = `
+            <button class="accordion-header ${isAnswered ? 'answered' : ''}" onclick="toggleAccordion(this, ${actualIndex})">
+                <span class="accordion-toggle">▼</span>
+                <span class="question-number">Q${actualIndex + 1}</span>
+                <span class="question-text">${escapeHtml(q.question)}</span>
+                ${isAnswered ? '<span class="check-icon">✓</span>' : ''}
+            </button>
+            <div class="accordion-content" id="content-${actualIndex}">
+                <div class="accordion-body">
+                    <div class="options-container" id="options-${actualIndex}">
+                        ${q.options.map((option, idx) => `
+                            <div class="option">
+                                <input 
+                                    type="radio" 
+                                    id="option-${actualIndex}-${idx}" 
+                                    name="answer-${actualIndex}" 
+                                    value="${idx}"
+                                    onchange="selectedAnswer = ${idx}; currentQuestion = ${actualIndex}"
+                                >
+                                <label for="option-${actualIndex}-${idx}">${escapeHtml(option)}</label>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button class="submit-btn" onclick="submitAnswerAccordion(${actualIndex})">Submit Answer</button>
+                    <div id="resultMessage-${actualIndex}" class="result-message"></div>
+                </div>
+            </div>
         `;
-        button.onclick = () => openQuestion(index);
-        grid.appendChild(button);
+        
+        container.appendChild(accordion);
     });
     
-    updateScore();
+    updateStats();
 }
 
-// Update score display
-function updateScore() {
-    document.getElementById('scoreCount').textContent = answeredQuestions.size;
+// Toggle accordion
+function toggleAccordion(button, index) {
+    const content = document.getElementById(`content-${index}`);
+    button.classList.toggle('open');
+    content.classList.toggle('open');
 }
 
-// Open question modal
-function openQuestion(index) {
-    currentQuestion = index;
-    selectedAnswer = null;
+// Filter questions
+function filterTodos(filter) {
+    currentFilter = filter;
     
-    const question = questions[index];
-    const modal = document.getElementById('questionModal');
-    const modalQuestion = document.getElementById('modalQuestion');
-    const optionsContainer = document.getElementById('optionsContainer');
-    const resultMessage = document.getElementById('resultMessage');
-    
-    // Clear previous result message
-    resultMessage.textContent = '';
-    resultMessage.className = 'result-message';
-    
-    // Set question text
-    modalQuestion.textContent = `Q${index + 1}: ${question.question}`;
-    
-    // Build options
-    optionsContainer.innerHTML = '';
-    question.options.forEach((option, optionIndex) => {
-        const optionDiv = document.createElement('div');
-        optionDiv.className = 'option';
-        optionDiv.innerHTML = `
-            <input 
-                type="radio" 
-                id="option${optionIndex}" 
-                name="answer" 
-                value="${optionIndex}"
-                onchange="selectedAnswer = ${optionIndex}"
-            >
-            <label for="option${optionIndex}">${option}</label>
-        `;
-        optionsContainer.appendChild(optionDiv);
+    // Update active filter button
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
     });
+    event.target.classList.add('active');
     
-    // Show modal
-    modal.style.display = 'block';
+    generateQuestionAccordions();
 }
 
-// Close question modal
-function closeQuestion() {
-    const modal = document.getElementById('questionModal');
-    modal.style.display = 'none';
+// Get filtered questions
+function getFilteredQuestions() {
+    switch(currentFilter) {
+        case 'active':
+            return questions.filter((q, idx) => !answeredQuestions.has(idx));
+        case 'completed':
+            return questions.filter((q, idx) => answeredQuestions.has(idx));
+        default:
+            return questions;
+    }
 }
 
-// Submit answer
-function submitAnswer() {
-    if (selectedAnswer === null) {
+// Submit answer from accordion
+function submitAnswerAccordion(index) {
+    // Find the selected option for this question
+    const selectedRadio = document.querySelector(`input[name="answer-${index}"]:checked`);
+    
+    if (!selectedRadio) {
         alert('Please select an answer');
         return;
     }
     
-    const question = questions[currentQuestion];
-    const resultMessage = document.getElementById('resultMessage');
-    const submitBtn = document.querySelector('.submit-btn');
+    const selectedAnswerValue = parseInt(selectedRadio.value);
+    const question = questions[index];
+    const resultMessage = document.getElementById(`resultMessage-${index}`);
+    const submitBtn = document.querySelector(`#options-${index}`).nextElementSibling;
     
-    if (selectedAnswer === question.correct) {
+    if (selectedAnswerValue === question.correct) {
         resultMessage.textContent = '✓ Correct! Well done!';
         resultMessage.className = 'result-message correct';
         
         // Mark as answered
-        answeredQuestions.add(currentQuestion);
+        answeredQuestions.add(index);
         submitBtn.disabled = true;
         submitBtn.style.opacity = '0.6';
         submitBtn.style.cursor = 'not-allowed';
         
-        // Update grid and score
-        setTimeout(() => {
-            generateQuestionButtons();
-        }, 1500);
+        // Update the header styling
+        const header = document.querySelector(`.accordion-header[onclick*="${index}"]`);
+        if (header) {
+            header.classList.add('answered');
+            if (!header.querySelector('.check-icon')) {
+                const checkIcon = document.createElement('span');
+                checkIcon.className = 'check-icon';
+                checkIcon.textContent = '✓';
+                header.appendChild(checkIcon);
+            }
+        }
+        
+        // Update stats
+        updateStats();
     } else {
         const correctOption = question.options[question.correct];
         resultMessage.textContent = `✗ Incorrect. The correct answer is: ${correctOption}`;
@@ -427,19 +451,34 @@ function submitAnswer() {
     }
 }
 
+// Update statistics
+function updateStats() {
+    const total = questions.length;
+    const completed = answeredQuestions.size;
+    const active = total - completed;
+    
+    document.getElementById('scoreCount').textContent = `${completed}/${total}`;
+}
+
 // Reset all answers
 function resetQuiz() {
     if (confirm('Are you sure you want to reset all answers? This cannot be undone.')) {
         answeredQuestions.clear();
-        closeQuestion();
-        generateQuestionButtons();
+        generateQuestionAccordions();
     }
 }
 
 // Close modal when clicking outside of it
 window.onclick = function(event) {
     const modal = document.getElementById('questionModal');
-    if (event.target === modal) {
+    if (modal && event.target === modal) {
         modal.style.display = 'none';
     }
+}
+
+// Escape HTML to prevent XSS attacks
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
